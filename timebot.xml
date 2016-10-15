@@ -1,0 +1,51 @@
+<context>
+    <pattern name="EnCity" value="entity://cities"/>
+    <pattern name="RuCity" value="entity://rucities"/>
+    <pattern name="City" value="($EnCity|$RuCity)"/>
+
+    <input pattern="(hi|hello|привет*) *">
+        <output value="I can tell you a current time in any city."/>
+    </input>
+
+    <input pattern="[time] [in] $City *">
+        <var name="City">
+            <script>
+                <![CDATA[
+                var city;
+                for (var i = 0; i < City.length; i++) {
+                    var c = City[i];
+                    city = !city || city.population < c.population ? c : city;
+                }
+                if (!city) city = City;
+                city;
+                ]]>
+            </script>
+        </var>
+
+        <var name="CityName" value='get("name", $City)'/>
+        <var name="CityCountry" value='get("country", $City)'/>
+
+        <get var="ts" url="http://api.timezonedb.com">
+            <param name="key" value="FRV82TNBHN8K"/>
+            <param name="format" value="json"/>
+            <param name="lat" value='get("lat", $City)'/>
+            <param name="lng" value='get("lon", $City)'/>
+        </get>
+
+        <var name="Time">
+            <script>
+                <![CDATA[
+                var date = new Date(ts.timestamp * 1000);
+                var hh = date.getUTCHours();
+                var mm = date.getUTCMinutes();
+                var p = hh > 12 ? 'PM' : 'AM';
+                if (hh > 12) hh -= 12;
+                if (mm < 10) mm = '0' + mm;
+                hh + ':' + mm + ' ' + p;
+                ]]>
+            </script>
+        </var>
+
+        <output value="$CityName ($CityCountry) - $Time"/>
+    </input>
+</context>

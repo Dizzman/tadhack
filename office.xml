@@ -1,0 +1,69 @@
+<context>
+    <pattern name="PersonEn" value="entity://stuff"/>
+    <pattern name="PersonRu" value="entity://rustuff"/>
+    <pattern name="Person" value="($PersonEn|$PersonRu)"/>
+
+    <pattern name="IssueEn" value="entity://issues"/>
+    <pattern name="IssueRu" value="entity://ruissues"/>
+    <pattern name="Issue" value="($IssueEn|$IssueRu)"/>
+
+    <input id="hi">
+        <pattern value="(hi|hello|hola|привет*) *"/>
+
+        <output value="Привет $req_user_name! Я офис-бот - помогаю тебе искать нужных тебе людей в компании, а также решить любую проблему." lang="ru"/>
+        <output value="Hi $req_user_name! I'm an office bot. I can help you to solve any problem or just find somebody by name."/>
+    </input>
+
+    <input>
+        <pattern value="* $Person *"/>
+
+        <var name="Person" value="javascript: Person.length ? Person[0] : Person"/>
+
+        <var name="Name" value='get("name", $Person)'/>
+        <var name="Phone" value='get("phone", $Person)'/>
+        <var name="Email" value='get("email", $Person)'/>
+
+        <output>
+            <![CDATA[
+<@personEmail:$Email|$Name>
+
+[$Email](mailto:$Email)
+
+$Phone
+            ]]>
+        </output>
+    </input>
+
+    <input>
+        <pattern value="* $Issue *"/>
+
+        <var name="Issue" value="javascript: Issue.length ? Issue[0] : Issue"/>
+
+        <var name="Name" value='get("name", $Issue)'/>
+        <var name="Phone" value='get("phone", $Issue)'/>
+        <var name="Email" value='get("email", $Issue)'/>
+
+        <output lang="ru">
+            <![CDATA[
+*Вот тот человек, который решит этот вопрос. Напиши ему в чат прямо сейчас.*
+
+<@personEmail:$Email|$Name>
+
+[$Email](mailto:$Email)
+
+$Phone
+            ]]>
+        </output>
+        <output>
+            <![CDATA[
+*Here is someone who can solve your problem right now. Just send a message.*
+
+<@personEmail:$Email|$Name>
+
+[$Email](mailto:$Email)
+
+$Phone
+            ]]>
+        </output>
+    </input>
+</context>
