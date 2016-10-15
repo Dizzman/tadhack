@@ -1,0 +1,152 @@
+<context>
+    <pattern name="City" value="entity://cities"/>
+
+    <input pattern="/tz *">
+        <output>
+            <item>
+                <![CDATA[
+I can calculate a relative time in different cities.
+
+Just ask me for example `/tz 8pm Boston`
+
+I can also tell you a current time in any city. For example `/tz New York`
+                ]]>
+            </item>
+        </output>
+    </input>
+
+    <input pattern="/tz * $City *">
+        <var name="City">
+            <script>
+                <![CDATA[
+                var city;
+                for (var i = 0; i < City.length; i++) {
+                    var c = City[i];
+                    city = !city || city.population < c.population ? c : city;
+                }
+                if (!city) city = City;
+                city;
+                ]]>
+            </script>
+        </var>
+
+        <var name="CityName" value='get("name", $City)'/>
+        <var name="CityCountry" value='get("country", $City)'/>
+
+        <get var="ts" url="http://api.timezonedb.com">
+            <param name="key" value="FRV82TNBHN8K"/>
+            <param name="format" value="json"/>
+            <param name="lat" value='get("lat", $City)'/>
+            <param name="lng" value='get("lon", $City)'/>
+        </get>
+
+        <var name="Time">
+            <script>
+                <![CDATA[
+                var date = new Date(ts.timestamp * 1000);
+                var hh = date.getUTCHours();
+                var mm = date.getUTCMinutes();
+                var p = hh > 12 ? 'PM' : 'AM';
+                if (hh > 12) hh -= 12;
+                if (mm < 10) mm = '0' + mm;
+                hh + ':' + mm + ' ' + p;
+                ]]>
+            </script>
+        </var>
+
+        <output value="It's *$Time* now in *$CityName ($CityCountry)*"/>
+    </input>
+
+    <input>
+        <pattern value="/tz * $Time * $City *"/>
+        <pattern value="/tz * $City * $Time *"/>
+
+        <var name="City">
+            <script>
+                <![CDATA[
+                var city;
+                for (var i = 0; i < City.length; i++) {
+                    var c = City[i];
+                    city = !city || city.population < c.population ? c : city;
+                }
+                if (!city) city = City;
+                city;
+                ]]>
+            </script>
+        </var>
+
+        <var name="CityName" value='get("name", $City)'/>
+        <var name="CityCountry" value='get("country", $City)'/>
+
+        <get var="ts" url="http://api.timezonedb.com">
+            <param name="key" value="FRV82TNBHN8K"/>
+            <param name="format" value="json"/>
+            <param name="lat" value='get("lat", $City)'/>
+            <param name="lng" value='get("lon", $City)'/>
+        </get>
+
+        <var name="TimeHere">
+            <script>
+                <![CDATA[
+                var offset = req_offset - ts.gmtOffset/60;
+                var date = new Date();
+                date.setHours(Time.hour);
+                date.setMinutes(Time.minute);
+                date = new Date(date.getTime() + offset*60000);
+                var hh = date.getHours();
+                var mm = date.getMinutes();
+                var p = hh > 12 ? 'PM' : 'AM';
+                if (hh > 12) hh -= 12;
+                if (mm < 10) mm = '0' + mm;
+                hh + ':' + mm + ' ' + p;
+                ]]>
+            </script>
+        </var>
+
+        <var name="TimeThere">
+            <script>
+                <![CDATA[
+                var offset = ts.gmtOffset/60 - req_offset;
+                var date = new Date();
+                date.setHours(Time.hour);
+                date.setMinutes(Time.minute);
+                date = new Date(date.getTime() + offset*60000);
+                var hh = date.getHours();
+                var mm = date.getMinutes();
+                var p = hh > 12 ? 'PM' : 'AM';
+                if (hh > 12) hh -= 12;
+                if (mm < 10) mm = '0' + mm;
+                hh + ':' + mm + ' ' + p;
+                ]]>
+            </script>
+        </var>
+
+        <output>
+            <item>
+                <![CDATA[
+                {
+                "text": "Relative time in *$CityName ($CityCountry)*",
+                "attachments" : [
+                    {
+                        "fallback": "Your client doesn't support attachments",
+                        "color": "#ffbb00",
+                        "fields" : [
+                            {"title" : "$CityName", "value" : "$Time", "short" : true},
+                            {"title" : "Here", "value" : "$TimeHere", "short" : true}
+                        ]
+                    },
+                    {
+                        "fallback": "Your client doesn't support attachments",
+                        "color": "#00a2ff",
+                        "fields" : [
+                            {"title" : "Here", "value" : "$Time", "short" : true},
+                            {"title" : "$CityName", "value" : "$TimeThere", "short" : true}
+                        ]
+                    }
+                   ]
+                }
+                ]]>
+            </item>
+        </output>
+    </input>
+</context>

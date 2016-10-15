@@ -1,0 +1,560 @@
+<context>
+    <pattern name="EnCity" value="entity://cities"/>
+    <pattern name="RuCity" value="entity://rucities"/>
+    <pattern name="City" value="($EnCity|$RuCity)"/>
+
+    <input id="help">
+        <pattern value="/help *"/>
+
+        <output>
+            <![CDATA[
+I can create reminders and notify you through this chat.
+
+Just send me a requests like:
+
+Call mom in 2 hours
+Buy flowers tomorrow
+Do it in 3min
+Go home at 5pm
+Tell my friends about Doit bot
+
+I can understand English, Spanish and Russian
+
+Visit www.zenbot.org to create your own bot
+            ]]>
+        </output>
+    </input>
+
+    <input id="hi">
+        <pattern value="(hi|hello|hola|привет*) *"/>
+
+        <output value="Привет привет" lang="ru"/>
+        <output value="Hola, solo escribe tu mensaje y selecciona la hora que deseas recibir la notificación. Mi trabajo ayudarte a recordar todo :) " lang="es"/>
+        <output value="Hi, just text your reminder and set the time and I'll help you to remember everything."/>
+    </input>
+
+    <input id="settings" pattern="/settings">
+        <output>
+            <item value="Sorry, I don't have any settings..."/>
+            <item value="Oops! Looks like I don't have any yet..."/>
+        </output>
+    </input>
+
+    <input id="thanks">
+        <pattern value="thank* [you *]"/>
+        <pattern value="(спасиб*|спс) [тебе *]"/>
+        <pattern value="(ok|ок)"/>
+        <pattern value="awesome"/>
+
+        <output lang="ru">
+            <item value="Всегда пожалуйста! Кстати ты можешь создать своего бота на www.zenbot.org"/>
+            <item value="Обращайтесь! Все сделаем!"/>
+            <item value="Загляни на http://hub.zenbot.org - там много интересного!"/>
+        </output>
+
+        <output lang="es">
+            <item value="¡No hay de que!"/>
+            <item value="¡Preguntanos! Siempre estamos para ayudarte"/>
+            <item value="Abré nuestra página web http://hub.zenbot.org - ¡encontrarás cosas interesantes!"/>
+        </output>
+
+        <output>
+            <item value="You are welcome! BTW you can create your own bots on www.zenbot.org"/>
+            <item value="Thanks, I'm doing all of this just for you :)"/>
+            <item value="Thanks for using me. You can find more interesting bots for Facebook, Slack and Telegram at http://hub.zenbot.org"/>
+        </output>
+    </input>
+
+    <input id="howareyou" pattern="how are you [doing]">
+        <output value="I'm fine thanks! Let's get this done, what do you need to remind?"/>
+    </input>
+
+    <input id="done" pattern="/done $Text">
+        <output if='$Text == "ru"'>
+            <item value="Здорово!"/>
+            <item value="Ура!"/>
+            <item value="Сделано!"/>
+            <item>
+Круто!
+Не забудь создать своего бота на www.zenbot.org
+            </item>
+        </output>
+        <output if='$Text == "es"'>
+            <item value="¡Perfecto!"/>
+            <item value="¡Guauu!"/>
+            <item value="¡Listo!"/>
+            <item>
+¡Super!
+No se te olvide crear tu propio bot en www.zenbot.org
+            </item>
+        </output>
+        <output>
+            <item value="Great!"/>
+            <item value="Yay!"/>
+            <item value="Yessss!"/>
+            <item>
+Yay!
+Don't forget to create your own bot on www.zenbot.org
+            </item>
+        </output>
+    </input>
+
+    <input id="start" pattern="/start *">
+
+        <output channel="telegram">
+            <![CDATA[
+Hi! I can create reminders and notify you through this chat.
+
+Just send me a requests like *"Call mom in 2 hours"* or *"Buy flowers tomorrow"*.
+
+_I can understand English, Spanish and Russian_
+
+*Please give me 5 stars on* [BotStore](https://telegram.me/storebot?start=do_itBot) *if you like me...*
+            ]]>
+        </output>
+
+        <output>
+            <![CDATA[
+Hi! I can create reminders and notify you through this chat
+
+Just send me a request like "Call mom in 2 hours" or "Buy flowers tomorrow"
+
+I can understand English, Spanish and Russian
+
+Visit www.zenbot.org to create your own bot
+            ]]>
+        </output>
+    </input>
+
+    <input id="city" pattern="/city * [$City] *">
+
+        <context if="empty($City)" modal="true">
+            <output value="¿En que ciudad te encuentras?" lang="es"/>
+            <output value="Please define your current city name" />
+            <input id="city" pattern="* $City *">
+                <context id="city"/>
+            </input>
+            <input id="unknown_city" pattern="*">
+                <output value="Ой.. Похоже, что я не знаю такого города.." lang="ru"/>
+                <output value="Opaa.. no conozco está ciudad.." lang="es"/>
+                <output value="Sorry, I don't know such a city..."/>
+            </input>
+        </context>
+
+        <context id="city">
+            <var name="City">
+                <script>
+                    <![CDATA[
+                            var city;
+                            for (var i = 0; i < City.length; i++) {
+                                var c = City[i];
+                                city = !city || city.population < c.population ? c : city;
+                            }
+                            if (!city) city = City;
+                            city;
+                        ]]>
+                </script>
+            </var>
+
+            <var name="UserCity" value="$City" scope="user"/>
+
+            <output value="Отлично! Теперь я знаю, из какого ты города." lang="ru"/>
+            <output value="!Perfecto! Ahora se en que ciudad te encuentras." lang="es"/>
+            <output value="Ok! Now I know your current timezone."/>
+        </context>
+    </input>
+
+    <input id="remind" pattern="[* (напомни* [мне] [про] | remind [me] [about] | recordar [me] [acerca]) ] { $Text [$When::Date] [$Time] }">
+
+        <context if="empty($UserCity) and empty($req_offset) and empty($req_lat)" modal="true">
+            <output value="Хорошо-хорошо, я все сделаю.. Но сначала мне нужно узнать, из какого ты города, чтобы определить твой часовой пояс." lang="ru"/>
+            <output value="Perfecto, yo te ayudo con todo. Pero antes de comenzar necesito saber en que ciudad vives para conocer tu zona horaria." lang="es"/>
+            <output value="Well, first of all I need to know the name of your current city to determine your timezone."/>
+
+            <input id="city" pattern="* $City *">
+                <var name="City">
+                    <script>
+                        <![CDATA[
+                            var city;
+                            for (var i = 0; i < City.length; i++) {
+                                var c = City[i];
+                                city = !city || city.population < c.population ? c : city;
+                            }
+                            if (!city) city = City;
+                            city;
+                        ]]>
+                    </script>
+                </var>
+                <var name="UserCity" value="$City" scope="user"/>
+
+                <context id="reminder_text" if="empty($Text)"/>
+                <context id="reminder_date" if="empty($Time)"/>
+                <context id="reminder"/>
+            </input>
+
+            <input id="unknown_city" pattern="*">
+                <output value="Ой.. Похоже, что я не знаю такого города.." lang="ru"/>
+                <output value="Opaa.. no conozco está ciudad...." lang="es"/>
+                <output value="Sorry, I don't know such a city..."/>
+            </input>
+        </context>
+
+        <context id="reminder" if="full($Text) and full($Time)"/>
+
+        <context id="reminder_text" if="empty($Text)" modal="true">
+            <output value='Что нужно напомнить?".' lang="ru"/>
+            <output value='¿Qué necesitas anotar?".' lang="es"/>
+            <output value='What do you have to do?'/>
+
+            <sample value="Отмена" lang="ru"/>
+            <sample value="Cancelar" lang="es"/>
+            <sample value="Cancel"/>
+
+            <input pattern="$Text" id="text">
+                <context id="reminder" if="full($Time)"/>
+                <context id="reminder_date"/>
+            </input>
+
+            <input id="cancel" pattern="(cancel|отмена|отмени*|отбой|cancelar|cancela|cierra)">
+                <context id="cancel"/>
+            </input>
+        </context>
+
+        <context id="reminder_date" if="empty($Time)">
+            <output value='Когда нужно напомнить об этом?' lang="ru" if="empty($When)"/>
+            <output value='Во сколько нужно напомнить?' lang="ru"/>
+
+            <output value='¿Cuando quieres que te notifique?' lang="es" if="empty($When)"/>
+            <output value='¿A qué hora?' lang="es"/>
+
+            <output value='When do you have to do it?' if="empty($When)"/>
+            <output value='At what time do you have to do it?'/>
+
+            <sample value="Отмена" lang="ru"/>
+            <sample value="Cancelar" lang="es"/>
+            <sample value="Cancel"/>
+
+            <input id="datetime">
+                <pattern value="* {(* $Time) [$When::Date]} *"/>
+                <pattern value="* $When::Date *"/>
+
+                <context id="reminder" if="full($Time)"/>
+                <context id="reminder_date"/>
+            </input>
+
+            <input id="now">
+                <pattern value="* now *"/>
+                <pattern value="* (сейчас|щас|шас) *"/>
+                <pattern value="* (ahora mismo|ahora|ya|en este momento) *"/>
+
+                <output value="⏰ $Text"/>
+            </input>
+        </context>
+
+        <context id="reminder">
+            <var name="UserCity" if="empty($UserCity) and full($req_lat)" value="javascript: var c = {lat: req_lat, lon: req_lon}; c"/>
+
+            <var name="ts" if="empty($UserCity)" value="javascript: var ts = {gmtOffset: req_offset * 60}; ts"/>
+
+            <get var="ts" url="http://api.timezonedb.com" if="empty($ts)">
+                <param name="key" value="FRV82TNBHN8K"/>
+                <param name="format" value="json"/>
+                <param name="lat" value='get("lat", $UserCity)'/>
+                <param name="lng" value='get("lon", $UserCity)'/>
+            </get>
+
+            <var name="Time">
+                <script>
+                    <![CDATA[
+                        var time = { hour: Time.hour, minute: Time.minute, second: Time.second, relative: Time.relative, part: Time.part };
+                        if (!time.part && time.hour < 9) {
+                            time.hour = time.hour + 12;
+                        }
+                        time;
+                    ]]>
+                </script>
+            </var>
+
+            <var name="When" value="javascript: When.date" if="full($when)"/>
+            <var name="When" value="$req_timestamp" if="empty($When)"/>
+
+            <var name="Text" value="cap($Text)"/>
+
+            <var name="DateTime" value="dt($When, $Time)"/>
+            <var name="DateTime" value="$DateTime + 24*60*60000" if="$DateTime lt $req_timestamp + $req_offset * 60000"/>
+            <var name="DateTime" value="javascript: DateTime - req_offset * 60000" if='get("relative", $Time)'/>
+            <var name="DateTime" value='javascript: DateTime - ts.gmtOffset * 1000' if='!get("relative", $Time)'/>
+
+            <var name="FacebookPayload" channel="facebook">
+                <![CDATA[
+                {
+                "recipient" : { "id" : "$req_client" },
+                "message" : {
+                        "text": "$Text",
+                        "quick_replies": [
+                            {
+                                "content_type":"text",
+                                "title":"Postpone",
+                                "payload":"$Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"10 min",
+                                "payload":"in 10 minutes $Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"30 min",
+                                "payload":"in 30 minutes $Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"Done",
+                                "payload":"/done"
+                            }
+                        ]
+                    }
+                }
+                ]]>
+            </var>
+
+            <var name="FacebookPayload" channel="facebook" lang="ru">
+                <![CDATA[
+                {
+                "recipient" : { "id" : "$req_client" },
+                "message" : {
+                        "text": "$Text",
+                        "quick_replies": [
+                            {
+                                "content_type":"text",
+                                "title":"Отложить",
+                                "payload":"$Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"10 минут",
+                                "payload":"через 10 минут $Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"30 минут",
+                                "payload":"через 30 минут $Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"Сделано",
+                                "payload":"/done ru"
+                            }
+                        ]
+                    }
+                }
+                ]]>
+            </var>
+
+            <var name="FacebookPayload" channel="facebook" lang="es">
+                <![CDATA[
+                {
+                "recipient" : { "id" : "$req_client" },
+                "message" : {
+                        "text": "$Text",
+                        "quick_replies": [
+                            {
+                                "content_type":"text",
+                                "title":"Posponer",
+                                "payload":"$Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"10 minutos",
+                                "payload":"dentro de 10 minutos $Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"30 minutos",
+                                "payload":"dentro de 30 minutos $Text"
+                            },
+                            {
+                                "content_type":"text",
+                                "title":"Hecho",
+                                "payload":"/done es"
+                            }
+                        ]
+                    }
+                }
+                ]]>
+            </var>
+
+            <var name="SlackPayload" channel="slack">
+                <![CDATA[
+                    [
+                        {
+                            "attachment_type" : "default",
+                            "fallback" : "There is no additional actions available",
+                            "callback_id" : "remind",
+                            "text" : "$Text",
+                            "actions" : [
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Postpone",
+                                    "value" : "$Text"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "10 min",
+                                    "value" : "$Text in 10 minutes"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "30 min",
+                                    "value" : "$Text in 30 minutes"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Done",
+                                    "value" : "/done"
+                                }
+                            ]
+                        }
+                    ]
+                ]]>
+            </var>
+
+            <var name="SlackPayload" channel="slack" lang="ru">
+                <![CDATA[
+                    [
+                        {
+                            "attachment_type" : "default",
+                            "fallback" : "There is no additional actions available",
+                            "callback_id" : "remind",
+                            "text" : "$Text",
+                            "actions" : [
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Отложить",
+                                    "value" : "$Text"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Через 10 мин",
+                                    "value" : "$Text через 10 минут "
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Через 30 мин",
+                                    "value" : "$Text через 30 минут"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Сделано",
+                                    "value" : "/done ru"
+                                }
+                            ]
+                        }
+                    ]
+                ]]>
+            </var>
+
+            <var name="SlackPayload" channel="slack" lang="es">
+                <![CDATA[
+                    [
+                        {
+                            "attachment_type" : "default",
+                            "fallback" : "There is no additional actions available",
+                            "callback_id" : "remind",
+                            "text" : "$Text",
+                            "actions" : [
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Posponer",
+                                    "value" : "$Text"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Dentro de 10 min",
+                                    "value" : "$Text Dentro de 10 minutos "
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Dentro de 30 min",
+                                    "value" : "$Text Dentro de 30 minutos"
+                                },
+                                {
+                                    "name" : "input",
+                                    "type" : "button",
+                                    "text" : "Hecho",
+                                    "value" : "/done es"
+                                }
+                            ]
+                        }
+                    ]
+                ]]>
+            </var>
+
+            <get var="Result" url="https://im.zenbot.org/api/schedule" channel="telegram">
+                <param name="timestamp" value="$DateTime"/>
+                <param name="callback" value="https://api.telegram.org/bot$req_telegram_token/sendMessage?chat_id=$req_telegram_chat&#38;text=⏰ $Text"/>
+            </get>
+
+            <get var="Result" url="https://im.zenbot.org/api/schedule" channel="slack">
+                <param name="timestamp" value="$DateTime"/>
+                <param name="callback" value="https://slack.com/api/chat.postMessage?token=$req_slack_token&#38;channel=$req_slack_channel&#38;as_user=false&#38;username=Doit&#38;icon_emoji=:alarm_clock:&#38;attachments=$SlackPayload"/>
+            </get>
+
+            <get var="Result" url="https://im.zenbot.org/api/schedule" channel="facebook">
+                <param name="timestamp" value="$DateTime"/>
+                <param name="callback" value="https://graph.facebook.com/v2.6/me/messages?access_token=$req_facebook_token"/>
+                <param name="payload" value="$FacebookPayload"/>
+            </get>
+
+            <var name="CallbackId" value="$Result" if="full($Result)" scope="context"/>
+
+            <var name="DateTime" value="javascript: DateTime + ts.gmtOffset * 1000"/>
+
+            <var name="DateFmt" value='fmt($DateTime, "EEEE dd.MM", $req_lang)' if='eq($req_lang, "ru")'/>
+            <var name="TimeFmt" value='fmt($DateTime, "HH:mm", $req_lang)' if='eq($req_lang, "ru")'/>
+
+            <var name="DateFmt" value='fmt($DateTime, "EEEE, MMMM dd", $req_lang)' if='!eq($req_lang, "ru")'/>
+            <var name="TimeFmt" value='fmt($DateTime, "hh:mm a", $req_lang)' if='!eq($req_lang, "ru")'/>
+
+            <output value='Хорошо, я напомню тебе "$Text" в $TimeFmt ($DateFmt)' lang="ru"/>
+            <output value='Ok, yo te notificaré "$Text" a las $TimeFmt ($DateFmt)' lang="es"/>
+            <output value='OK, I will remind you "$Text" at $TimeFmt $DateFmt'/>
+
+            <sample value="Отмена" lang="ru"/>
+            <sample value="Cancelar" lang="es"/>
+            <sample value="Cancel"/>
+
+            <input id="cancel" pattern="(cancel|cancelar|cancela|cierra|no|nope|отмена|отмени*|отбой|стоп|нет|не [надо|нужно])">
+                <context id="cancel">
+                    <output value="Хорошо, не буду создавать это напоминание." lang="ru"/>
+                    <output value="Ok, no voy a crear ninguna notificación." lang="es"/>
+                    <output value="Ok, canceling this reminder."/>
+
+                    <get var="Result" url="https://im.zenbot.org/api/schedule/cancel" if="full($CallbackId)">
+                        <param name="id" value="$CallbackId"/>
+                    </get>
+                </context>
+            </input>
+
+        </context>
+    </input>
+
+    <input id="cancel" pattern="(cancel|cancelar|cancela|cierra|no|nope|отмена|отмени*|отбой|стоп|нет|не [надо|нужно])">
+        <context id="cancel">
+            <output value="Хорошо, не буду создавать это напоминание." lang="ru"/>
+            <output value="Ok, no voy a crear ninguna notificación." lang="es"/>
+            <output value="Ok, canceling this reminder."/>
+        </context>
+    </input>
+</context>
