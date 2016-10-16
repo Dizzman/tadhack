@@ -8,9 +8,9 @@
     <pattern name="Issue" value="($IssueEn|$IssueRu)"/>
 
     <input id="hi">
-        <pattern value="(hi|hello|hola|привет*) *"/>
+        <pattern value="* (hi|hello|hola|привет*) *"/>
 
-        <output value="Привет $req_user_name! Я офис-бот - помогаю тебе искать нужных тебе людей в компании, а также решить любую проблему." lang="ru"/>
+        <output value="Привет $req_user_name! Я офис-бот - помогаю искать нужных тебе людей, напоминать о задачах, узнавать время и даже составлять типовые документы." lang="ru"/>
         <output value="Hi $req_user_name! I'm an office bot. I can help you to solve any problem or just find somebody by name."/>
     </input>
 
@@ -65,5 +65,35 @@ $Phone
 $Phone
             ]]>
         </output>
+    </input>
+
+    <input>
+        <pattern value="* отпуск *"/>
+
+        <context>
+            <output value="Сейчас составим заявление на отпуск за свой счет. Когда хотите пойти в отпуск, $req_user_name?"/>
+
+            <input pattern="[Office] ($Text|$From::Date)">
+                <context if="full($From)">
+                    <var name="From" value="javascript: From.formatted" scope="context"/>
+                    <output value="А когда планируете вернуться?"/>
+
+                    <input pattern="[Office] ($To::Text | * $To::Date)">
+                        <var name="Text" value="$From $To" scope="context"/>
+                        <context id="order"/>
+                    </input>
+
+                </context>
+
+                <context id="order">
+                    <output value="Отлично! Ваше заявление уже на рассмотрении!"/>
+
+                    <get url="https://maker.ifttt.com/trigger/tadhack/with/key/bA4H5mj-MbuYYGD4ti-M8R" var="Result">
+                        <param name="value1" value="$req_user_name"/>
+                        <param name="value2" value="$Text"/>
+                    </get>
+                </context>
+            </input>
+        </context>
     </input>
 </context>
